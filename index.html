@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Secure Image Ownership Proofer (Robust Engine)</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#28a745">
+    
+    <!-- LIBRARIES -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 15px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; }
+        .app-container { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; position: relative;}
+        .lang-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8em; z-index: 10;}
+        .header { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 25px 15px; text-align: center; }
+        .tab-header { display: flex; background: #f8f9fa; border-bottom: 2px solid #eee; }
+        .tab-btn { flex: 1; padding: 15px 5px; text-align: center; cursor: pointer; border: none; background: transparent; font-weight: bold; color: #6c757d; font-size: 0.95em; border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: #28a745; border-bottom: 3px solid #28a745; background: white; }
+        .tab-content { display: none; padding: 25px; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; }
+        button.action-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, #28a745, #20c997); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        button.action-btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .preview { text-align: center; margin: 15px 0; }
+        .preview img { max-width: 100%; border-radius: 15px; border: 3px solid #28a745; }
+        
+        .result { margin: 20px 0; padding: 20px; border-radius: 15px; text-align: center; font-weight: bold; }
+        .success { background: #d4edda; color: #155724; border: 2px solid #28a745; }
+        .error-msg { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 10px; border: 1px solid #f5c6cb; margin: 10px 0; font-weight: bold; text-align: center; }
+        
+        .owner-card { background: #1e3c72; color: white; padding: 20px; border-radius: 15px; margin-top: 15px; text-align: left; }
+        .detail-row { display: flex; justify-content: space-between; margin: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;}
+        
+        .download-link { display: block; text-align: center; background: #ffc107; color: #333; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc3545; margin-right: 5px; }
+        .status-dot.active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+        .hidden { display: none !important; }
+        .reset-btn { width: 100%; background: #6c757d; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; margin-top: 10px; font-weight: bold;}
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <button id="langToggleBtn" class="lang-btn" onclick="toggleLanguage()">🌐 English</button>
+        
+        <div class="header">
+            <h1 id="mainTitle">🛡️ Secure Image Proofer</h1>
+            <p>Analysis-Based Anti-Theft Protection</p>
+            <div class="db-status"><span id="dbDot" class="status-dot"></span> Database Connected</div>
+        </div>
+
+        <div class="tab-header">
+            <button class="tab-btn active" onclick="openTab(event, 'tabAdd')">1. Add</button>
+            <button class="tab-btn" onclick="openTab(event, 'tabEdit')">2. Edit</button>
+            <button class="tab-btn" onclick="openTab(event, 'tabVerify')">3. Verify</button>
+        </div>
+
+        <!-- TAB 1: ADD -->
+        <div id="tabAdd" class="tab-content active">
+            <h2>Registe Ownership</h2>
+            <div id="addLockedMsg" class="hidden error-msg">⚠️ Image Already Registered! Edit tab use karein.</div>
+            <input type="file" id="addImg" accept="image/*">
+            <input type="text" id="addName" placeholder="👤 Full Name">
+            <input type="tel" id="addMobile" placeholder="📱 Mobile Number">
+            <input type="text" id="addId" placeholder="🆔 ID Number">
+            <button id="addBtn" class="action-btn" disabled>Create Secure Image</button>
+
+            <div id="addResult" class="hidden">
+                <div class="result success">✅ Secured Successfully!</div>
+                <div class="owner-card" id="resCard">
+                    <h3>👑 Certificate</h3>
+                    <div class="detail-row"><span>Name:</span> <b id="resName"></b></div>
+                    <div class="detail-row"><span>Status:</span> <b style="color:#00ff00;">ENCRYPTED</b></div>
+                    <div id="visualFinal" class="preview"></div>
+                    <a id="downloadBtn" href="#" download="Secured_Original.jpg" class="download-link">⬇️ Download Certificate Image</a>
+                </div>
+            </div>
+            <button class="reset-btn" onclick="resetAll('tabAdd')">⟳ Reset / Clear Section</button>
+        </div>
+
+        <!-- TAB 2: EDIT -->
+        <div id="tabEdit" class="tab-content">
+            <h2>✏️ Update Ownership</h2>
+            <p id="editScanMsg" style="font-size: 0.9em; color: #555; margin-bottom: 5px;">Pehle image upload karein, system scan karega...</p>
+            <input type="file" id="editImg" accept="image/*">
+            
+            <!-- Error messages -->
+            <div id="editInvalidMsg" class="hidden error-msg">❌ Invalid Image! Is image ki koi ownership record database mein nahi mili.</div>
+            <div id="editWrongIdMsg" class="hidden error-msg">❌ Wrong ID! Di gayi ID image ke original owner se match nahi hoti.</div>
+
+            <!-- ID Unlock Box -->
+            <div id="editUnlockBox" class="hidden" style="background: #f0f4f8; padding: 15px; border-radius: 15px; margin-top: 10px; border: 1px solid #d1d9e6;">
+                <p style="margin-bottom:10px; font-weight: bold; color: #1e3c72;">🔒 Ownership Found! Verification Required:</p>
+                <input type="text" id="verifyIdForEdit" placeholder="🆔 Enter Original ID Number to Unlock">
+                <button id="unlockEditBtn" class="action-btn" style="background: #1e3c72;">🔑 Verify ID & Unlock Edit</button>
+            </div>
+
+            <!-- Edit Form (Hidden until unlocked) -->
+            <div id="editFormBox" class="hidden" style="margin-top: 20px; border-top: 2px dashed #28a745; padding-top: 15px;">
+                <h3 style="color: #28a745; margin-bottom: 10px;">✅ Unlocked! Nayi Details Bharein:</h3>
+                <input type="text" id="editName" placeholder="👤 New Full Name">
+                <input type="tel" id="editMobile" placeholder="📱 New Mobile Number">
+                <input type="text" id="editId" placeholder="🆔 New ID Number (Update ID)">
+                <button id="editUpdateBtn" class="action-btn">🔄 Update & Save in Database</button>
+            </div>
+
+            <div id="editResult" class="result hidden"></div>
+            <button class="reset-btn" onclick="resetAll('tabEdit')">⟳ Reset / Clear Section</button>
+        </div>
+
+        <!-- TAB 3: VERIFY -->
+        <div id="tabVerify" class="tab-content">
+            <h2>🔍 Deep Analysis Verification</h2>
+            <p style="font-size:0.8em; color:#666; margin-bottom:10px;">(Works with Cropped, Compressed, or Zoomed images)</p>
+            <input type="file" id="verifyImg" accept="image/*">
+            <button id="verifyBtn" class="action-btn" disabled>✅ Run Ownership Analysis</button>
+            <div id="verifyResult" class="hidden"></div>
+            <button class="reset-btn" onclick="resetAll('tabVerify')">⟳ Reset / Clear Section</button>
+        </div>
+    </div>
+
+    <script>
+        // --- DB CONFIG ---
+        const SUPABASE_URL = 'https://trchucfdpjqizvdepebb.supabase.co'; 
+        const SUPABASE_KEY = 'sb_publishable_f17wjBRos0UahSTol-SHlQ_4XZyNp0k'; 
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function checkConn() {
+            const { error } = await supabase.from('image_ownership').select('id').limit(1);
+            if (!error) document.getElementById('dbDot').classList.add('active');
+        }
+        checkConn();
+
+        // --- ROBUST ANALYSIS ENGINE (1024-bit pHash) ---
+        async function generateRobustHash(imgElement) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                canvas.width = 32; canvas.height = 32;
+                ctx.drawImage(imgElement, 0, 0, 32, 32);
+                const imageData = ctx.getImageData(0, 0, 32, 32).data;
+                let grayscale = [];
+                let total = 0;
+                for (let i = 0; i < imageData.length; i += 4) {
+                    const avg = (imageData[i] + imageData[i+1] + imageData[i+2]) / 3;
+                    grayscale.push(avg);
+                    total += avg;
+                }
+                const threshold = total / 1024;
+                resolve(grayscale.map(v => v >= threshold ? '1' : '0').join(''));
+            });
+        }
+
+        function calculateSimilarity(hash1, hash2) {
+            let matches = 0;
+            for (let i = 0; i < hash1.length; i++) {
+                if (hash1[i] === hash2[i]) matches++;
+            }
+            return (matches / 1024) * 100;
+        }
+
+        async function findBestMatch(targetHash) {
+            const { data, error } = await supabase.from('image_ownership').select('*');
+            if (error || !data) return null;
+            let bestMatch = null;
+            let highestScore = 0;
+            for (const record of data) {
+                const score = calculateSimilarity(targetHash, record.image_hash);
+                if (score > 75 && score > highestScore) {
+                    highestScore = score;
+                    bestMatch = record;
+                }
+            }
+            return bestMatch;
+        }
+
+        // --- TABS & RESET ---
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        function resetAll(tab) {
+            if(tab === 'tabAdd') {
+                document.getElementById('addImg').value = '';
+                document.getElementById('addName').value = '';
+                document.getElementById('addMobile').value = '';
+                document.getElementById('addId').value = '';
+                document.getElementById('addResult').classList.add('hidden');
+                document.getElementById('addLockedMsg').classList.add('hidden');
+                document.getElementById('addBtn').disabled = true;
+                currentAddHash = "";
+            } else if(tab === 'tabEdit') {
+                document.getElementById('editImg').value = '';
+                document.getElementById('verifyIdForEdit').value = '';
+                document.getElementById('editUnlockBox').classList.add('hidden');
+                document.getElementById('editFormBox').classList.add('hidden');
+                document.getElementById('editInvalidMsg').classList.add('hidden');
+                document.getElementById('editWrongIdMsg').classList.add('hidden');
+                document.getElementById('editResult').classList.add('hidden');
+                editRecord = null;
+            } else if(tab === 'tabVerify') {
+                document.getElementById('verifyImg').value = '';
+                document.getElementById('verifyResult').classList.add('hidden');
+                document.getElementById('verifyBtn').disabled = true;
+            }
+        }
+
+        // --- TAB 1: ADD LOGIC ---
+        let currentAddHash = "";
+        document.getElementById('addImg').onchange = async (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const img = new Image();
+            img.onload = async () => {
+                currentAddHash = await generateRobustHash(img);
+                const exist = await findBestMatch(currentAddHash);
+                if(exist) {
+                    document.getElementById('addLockedMsg').classList.remove('hidden');
+                    document.getElementById('addBtn').disabled = true;
+                } else {
+                    document.getElementById('addLockedMsg').classList.add('hidden');
+                    document.getElementById('addBtn').disabled = false;
+                }
+            };
+            img.src = URL.createObjectURL(file);
+        };
+
+        document.getElementById('addBtn').onclick = async () => {
+            const name = document.getElementById('addName').value.trim();
+            const mob = document.getElementById('addMobile').value.trim();
+            const id = document.getElementById('addId').value.trim();
+            if(!name || !mob || !id) return alert("Fill all details!");
+            const btn = document.getElementById('addBtn');
+            btn.innerText = "⏳ Deep Scanning & Saving..."; btn.disabled = true;
+            const { error } = await supabase.from('image_ownership').insert([{
+                image_hash: currentAddHash, owner_name: name, mobile: mob, id_number: id
+            }]);
+            if(error) { alert("Error saving!"); btn.disabled = false; return; }
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = () => {
+                canvas.width = img.width; canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                ctx.fillStyle = "rgba(255,255,255,0.4)";
+                ctx.font = `${canvas.width/25}px Arial`;
+                ctx.fillText(`SECURED BY PROOFER: ${name}`, 30, canvas.height - 30);
+                const finalUrl = canvas.toDataURL('image/jpeg', 0.9);
+                document.getElementById('resName').innerText = name;
+                document.getElementById('visualFinal').innerHTML = `<img src="${finalUrl}">`;
+                document.getElementById('downloadBtn').href = finalUrl;
+                document.getElementById('addResult').classList.remove('hidden');
+                btn.innerText = "DONE!";
+            };
+            img.src = URL.createObjectURL(document.getElementById('addImg').files[0]);
+        };
+
+        // --- TAB 2: EDIT LOGIC ---
+        let editRecord = null;
+        document.getElementById('editImg').onchange = async (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            // UI Clean up before scan
+            document.getElementById('editInvalidMsg').classList.add('hidden');
+            document.getElementById('editUnlockBox').classList.add('hidden');
+            document.getElementById('editFormBox').classList.add('hidden');
+            document.getElementById('editWrongIdMsg').classList.add('hidden');
+
+            const img = new Image();
+            img.onload = async () => {
+                const hash = await generateRobustHash(img);
+                editRecord = await findBestMatch(hash);
+                
+                if(editRecord) {
+                    document.getElementById('editUnlockBox').classList.remove('hidden');
+                } else {
+                    document.getElementById('editInvalidMsg').classList.remove('hidden');
+                }
+            };
+            img.src = URL.createObjectURL(file);
+        };
+
+        document.getElementById('unlockEditBtn').onclick = () => {
+            const inputId = document.getElementById('verifyIdForEdit').value.trim();
+            document.getElementById('editWrongIdMsg').classList.add('hidden');
+
+            if(editRecord && inputId === editRecord.id_number) {
+                // Correct ID - Show Form
+                document.getElementById('editUnlockBox').classList.add('hidden');
+                document.getElementById('editFormBox').classList.remove('hidden');
+                // Fill current data
+                document.getElementById('editName').value = editRecord.owner_name;
+                document.getElementById('editMobile').value = editRecord.mobile;
+                document.getElementById('editId').value = editRecord.id_number;
+            } else {
+                // Wrong ID
+                document.getElementById('editWrongIdMsg').classList.remove('hidden');
+            }
+        };
+
+        document.getElementById('editUpdateBtn').onclick = async () => {
+            const btn = document.getElementById('editUpdateBtn');
+            btn.innerText = "⏳ Updating Database..."; btn.disabled = true;
+
+            const { error } = await supabase.from('image_ownership').update({
+                owner_name: document.getElementById('editName').value.trim(),
+                mobile: document.getElementById('editMobile').value.trim(),
+                id_number: document.getElementById('editId').value.trim()
+            }).eq('id', editRecord.id);
+            
+            if(!error) {
+                document.getElementById('editFormBox').classList.add('hidden');
+                document.getElementById('editResult').innerHTML = "✅ Details Updated & Saved Successfully!";
+                document.getElementById('editResult').className = "result success";
+                document.getElementById('editResult').classList.remove('hidden');
+            } else {
+                alert("Update failed!");
+                btn.disabled = false;
+                btn.innerText = "Try Again";
+            }
+        };
+
+        // --- TAB 3: VERIFY LOGIC ---
+        document.getElementById('verifyImg').onchange = (e) => {
+            document.getElementById('verifyBtn').disabled = !e.target.files[0];
+        };
+
+        document.getElementById('verifyBtn').onclick = async () => {
+            const btn = document.getElementById('verifyBtn');
+            const res = document.getElementById('verifyResult');
+            btn.innerText = "⏳ Running Deep Analysis..."; btn.disabled = true;
+            const file = document.getElementById('verifyImg').files[0];
+            const img = new Image();
+            img.onload = async () => {
+                const hash = await generateRobustHash(img);
+                const match = await findBestMatch(hash);
+                res.classList.remove('hidden');
+                if(match) {
+                    res.innerHTML = `
+                        <div class="owner-card" style="border:3px solid #00ff00;">
+                            <h3 style="color:#00ff00;">✅ MATCH FOUND!</h3>
+                            <div class="detail-row"><span>Owner:</span> <b>${match.owner_name}</b></div>
+                            <div class="detail-row"><span>Mobile:</span> <b>******${match.mobile.slice(-4)}</b></div>
+                            <div class="detail-row"><span>ID:</span> <b>******${match.id_number.slice(-4)}</b></div>
+                        </div>`;
+                } else {
+                    res.innerHTML = `<div class="error-msg">❌ NO OWNERSHIP DATA FOUND</div>`;
+                }
+                btn.innerText = "Run Analysis Again"; btn.disabled = false;
+            };
+            img.src = URL.createObjectURL(file);
+        };
+
+        function toggleLanguage() { alert("Language switching logic can be added here."); }
+    </script>
+</body>
+</html>
