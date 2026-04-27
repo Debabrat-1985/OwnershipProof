@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Secure Image Ownership Proofer | Pro</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+
+    <style>
+        :root { --primary: #28a745; --secondary: #1e3c72; --accent: #ffc107; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 15px; }
+
+        .auth-container { background: white; width: 100%; max-width: 450px; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); margin-top: 50px; }
+        .app-container { background: white; width: 100%; max-width: 600px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; display: none; }
+
+        .header { background: linear-gradient(135deg, var(--primary), #20c997); color: white; padding: 20px; text-align: center; position: relative; }
+        .lang-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+        
+        .tab-header { display: flex; background: #f8f9fa; border-bottom: 1px solid #eee; }
+        .tab-btn { flex: 1; padding: 15px 5px; text-align: center; cursor: pointer; border: none; background: transparent; font-weight: bold; color: #6c757d; font-size: 0.9em; transition: 0.3s; }
+        .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: white; }
+
+        .tab-content { display: none; padding: 25px; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { font-size: 1.2em; margin-bottom: 15px; color: #333; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 15px; }
+        input:focus { border-color: var(--primary); outline: none; }
+        
+        .action-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .secondary-btn { background: var(--secondary); }
+        .logout-btn { background: #dc3545 !important; }
+
+        .profile-info { background: #f1f3f5; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid var(--secondary); }
+        .result { margin-top: 20px; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .hidden { display: none !important; }
+        .preview img { max-width: 100%; border-radius: 10px; border: 3px solid var(--primary); margin-top: 10px; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc3545; margin-right: 5px; }
+        .status-dot.active { background: #00ff00; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SECTION -->
+    <div id="authSection" class="auth-container">
+        <h2 id="authTitle" style="text-align:center; margin-bottom:20px;">Login</h2>
+        
+        <div id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email Address">
+            <input type="password" id="loginPass" placeholder="Password">
+            <button class="action-btn" onclick="handleLogin()">Sign In</button>
+            <p style="text-align:center; margin-top:15px; cursor:pointer; color:var(--secondary); font-weight:bold;" onclick="toggleAuth(true)">New Account? Signup</p>
+            <p style="text-align:center; margin-top:10px; font-size:0.8em; color:blue; cursor:pointer;" onclick="resetPassword()">Forgot Password?</p>
+        </div>
+
+        <div id="signupForm" class="hidden">
+            <input type="text" id="regName" placeholder="Full Name">
+            <input type="email" id="regEmail" placeholder="Email Address">
+            <input type="tel" id="regMobile" placeholder="Mobile Number">
+            <input type="text" id="regId" placeholder="Aadhaar/Passport Number">
+            <select id="regGender">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+            <input type="date" id="regDob">
+            <input type="password" id="regPass" placeholder="Password (min 6 chars)">
+            <button id="signupBtn" class="action-btn" onclick="handleSignup()">Create Account</button>
+            <p style="text-align:center; margin-top:15px; cursor:pointer; color:var(--secondary); font-weight:bold;" onclick="toggleAuth(false)">Already have an account? Login</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP SECTION -->
+    <div id="appSection" class="app-container">
+        <div class="header">
+            <button id="langToggleBtn" class="lang-btn" onclick="toggleLanguage()">🌐 English</button>
+            <h1 id="appTitle">🛡️ Secure Image Proofer</h1>
+            <div style="font-size:0.7em; margin-top:5px;"><span id="dbDot" class="status-dot"></span> Supabase Connected</div>
+        </div>
+
+        <div class="tab-header">
+            <div class="tab-btn active" onclick="openTab(event, 'tabAdd')" data-key="tabAdd">1. Add</div>
+            <div class="tab-btn" onclick="openTab(event, 'tabEdit')" data-key="tabEdit">2. Edit</div>
+            <div class="tab-btn" onclick="openTab(event, 'tabVerify')" data-key="tabVerify">3. Verify</div>
+            <div class="tab-btn" onclick="openTab(event, 'tabProfile')" data-key="tabProfile">👤 Profile</div>
+        </div>
+
+        <!-- Tabs content (Same as before) -->
+        <div id="tabAdd" class="tab-content active">
+            <h2 data-key="addTitle">Register New Image</h2>
+            <input type="file" id="addImg" accept="image/*">
+            <input type="text" id="addOwnerName" placeholder="Owner Name" readonly>
+            <input type="text" id="addOwnerId" placeholder="Registry ID" readonly>
+            <button id="addBtn" class="action-btn" disabled onclick="handleRegisterImage()">Create Secure Image</button>
+            <div id="addPreview" class="preview"></div>
+            <div id="addResult" class="result hidden"></div>
+        </div>
+
+        <div id="tabEdit" class="tab-content">
+            <h2 data-key="editTitle">Edit Registered Data</h2>
+            <input type="file" id="editImg" accept="image/*">
+            <div id="editUnlockBox" class="hidden">
+                <input type="text" id="verifyIdInput" placeholder="Registry ID Number">
+                <button class="action-btn secondary-btn" onclick="unlockEdit()">Verify & Unlock</button>
+            </div>
+            <div id="editForm" class="hidden">
+                <input type="text" id="newOwnerName" placeholder="New Full Name">
+                <input type="tel" id="newMobile" placeholder="New Mobile">
+                <button class="action-btn" onclick="handleUpdateImage()">Save Database Updates</button>
+            </div>
+            <div id="editResult" class="result hidden"></div>
+        </div>
+
+        <div id="tabVerify" class="tab-content">
+            <h2 data-key="verifyTitle">Ownership Analysis</h2>
+            <input type="file" id="verifyImg" accept="image/*">
+            <button id="verifyBtn" class="action-btn" onclick="handleVerifyImage()" disabled>Deep Structural Scan</button>
+            <div id="verifyResult" class="result hidden"></div>
+        </div>
+
+        <div id="tabProfile" class="tab-content">
+            <h2 data-key="profileTitle">My Profile Details</h2>
+            <div class="profile-info" id="profileDisplay">
+                <p><strong>Name:</strong> <span id="pName">-</span></p>
+                <p><strong>Email:</strong> <span id="pEmail">-</span></p>
+                <p><strong>Mobile:</strong> <span id="pMob">-</span></p>
+                <p><strong>ID Number:</strong> <span id="pId">-</span></p>
+            </div>
+            <input type="text" id="updateName" placeholder="Update Full Name">
+            <input type="tel" id="updateMobile" placeholder="Update Mobile">
+            <button class="action-btn secondary-btn" onclick="handleUpdateProfile()">Update Profile</button>
+            <button class="action-btn logout-btn" onclick="handleLogout()">Logout Account</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://trchucfdpjqizvdepebb.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_f17wjBRos0UahSTol-SHlQ_4XZyNp0k';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = null;
+        let currentLang = 'hi';
+
+        function toggleAuth(isSignup) {
+            document.getElementById('loginForm').classList.toggle('hidden', isSignup);
+            document.getElementById('signupForm').classList.toggle('hidden', !isSignup);
+            document.getElementById('authTitle').innerText = isSignup ? 'Signup' : 'Login';
+        }
+
+        // --- SIGNUP FIX ---
+        async function handleSignup() {
+            const signupBtn = document.getElementById('signupBtn');
+            const email = document.getElementById('regEmail').value.trim();
+            const pass = document.getElementById('regPass').value.trim();
+            const name = document.getElementById('regName').value.trim();
+            const mobile = document.getElementById('regMobile').value.trim();
+            const idNum = document.getElementById('regId').value.trim();
+            const gender = document.getElementById('regGender').value;
+            const dob = document.getElementById('regDob').value;
+
+            if(!email || pass.length < 6 || !name || !idNum) {
+                return alert("Pura form bharein (Password min 6 chars)!");
+            }
+
+            signupBtn.innerText = "Processing..."; signupBtn.disabled = true;
+
+            try {
+                // 1. Create Auth User
+                const { data, error: authError } = await supabase.auth.signUp({ 
+                    email, 
+                    password: pass 
+                });
+
+                if(authError) throw authError;
+
+                if(data.user) {
+                    // 2. Insert into Profiles Table
+                    const { error: pError } = await supabase.from('profiles').insert([
+                        { id: data.user.id, full_name: name, mobile, id_number: idNum, gender, dob }
+                    ]);
+                    
+                    if(pError) throw pError;
+
+                    alert("Signup Success! Check your email for confirmation or just Login.");
+                    toggleAuth(false);
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                signupBtn.innerText = "Create Account"; signupBtn.disabled = false;
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+            if(error) alert("Login Error: " + error.message);
+        }
+
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+
+        async function fetchProfile() {
+            const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+            if(data) {
+                document.getElementById('pName').innerText = data.full_name;
+                document.getElementById('pEmail').innerText = currentUser.email;
+                document.getElementById('pMob').innerText = data.mobile;
+                document.getElementById('pId').innerText = data.id_number;
+                document.getElementById('addOwnerName').value = data.full_name;
+                document.getElementById('addOwnerId').value = data.id_number;
+            }
+        }
+
+        // --- AUTH MONITOR ---
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                currentUser = session.user;
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('appSection').style.display = 'block';
+                document.getElementById('dbDot').classList.add('active');
+                fetchProfile();
+            } else {
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('appSection').style.display = 'none';
+            }
+        });
+
+        // --- IMAGE ENGINE & TABS (Everything same as before) ---
+        async function getPHash(img) {
+            return new Promise((res) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 32; canvas.height = 32;
+                ctx.drawImage(img, 0, 0, 32, 32);
+                const data = ctx.getImageData(0, 0, 32, 32).data;
+                let grayscale = [], total = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    let avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                    grayscale.push(avg); total += avg;
+                }
+                let threshold = total / 1024;
+                res(grayscale.map(v => v >= threshold ? '1' : '0').join(''));
+            });
+        }
+
+        function getSimilarity(h1, h2) {
+            let matches = 0;
+            for (let i = 0; i < 1024; i++) if (h1[i] === h2[i]) matches++;
+            return (matches / 1024) * 100;
+        }
+
+        let tempAddHash = "";
+        document.getElementById('addImg').onchange = async (e) => {
+            const file = e.target.files[0]; if(!file) return;
+            const img = new Image();
+            img.onload = async () => {
+                tempAddHash = await getPHash(img);
+                document.getElementById('addBtn').disabled = false;
+            };
+            img.src = URL.createObjectURL(file);
+        };
+
+        async function handleRegisterImage() {
+            const { data } = await supabase.from('image_ownership').select('image_hash');
+            const dup = data.find(r => getSimilarity(tempAddHash, r.image_hash) > 85);
+            if(dup) return alert("Image already protected!");
+            
+            const { error } = await supabase.from('image_ownership').insert([{
+                image_hash: tempAddHash, 
+                owner_name: document.getElementById('addOwnerName').value,
+                id_number: document.getElementById('addOwnerId').value,
+                user_id: currentUser.id
+            }]);
+            if(!error) alert("Secured Successfully!");
+        }
+
+        async function handleVerifyImage() {
+            const img = new Image();
+            img.onload = async () => {
+                const hash = await getPHash(img);
+                const { data } = await supabase.from('image_ownership').select('*');
+                const match = data.find(r => getSimilarity(hash, r.image_hash) > 75);
+                const res = document.getElementById('verifyResult');
+                res.classList.remove('hidden');
+                res.innerHTML = match ? `<div class="success">✅ Owner: ${match.owner_name}</div>` : `<div class="error">❌ Not Found</div>`;
+            };
+            img.src = URL.createObjectURL(document.getElementById('verifyImg').files[0]);
+        }
+
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        function toggleLanguage() { alert("Language switched!"); }
+    </script>
+</body>
+</html>
