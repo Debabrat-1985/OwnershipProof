@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Secure Image Proofer | Pro Engine</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+
+    <style>
+        :root { --primary: #28a745; --secondary: #1e3c72; --bg: #f4f7f6; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; padding: 15px; display: flex; justify-content: center; }
+        
+        .auth-box { background: white; width: 100%; max-width: 450px; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); margin-top: 40px; }
+        .app-container { background: white; width: 100%; max-width: 600px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; display: none; }
+        
+        .header { background: linear-gradient(135deg, var(--primary), #20c997); color: white; padding: 25px; text-align: center; position: relative; }
+        .lang-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 0.8em; }
+        
+        .tab-header { display: flex; background: #f8f9fa; border-bottom: 1px solid #ddd; }
+        .tab-btn { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #666; border-bottom: 3px solid transparent; transition: 0.3s; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
+        
+        .tab-content { padding: 25px; display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 15px; }
+        .action-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .secondary-btn { background: var(--secondary); }
+        .reset-btn { background: #6c757d; margin-top: 15px; }
+        .logout-btn { background: #dc3545; margin-top: 20px; }
+
+        .result-box { margin-top: 20px; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        .owner-card { background: #1e3c72; color: white; padding: 20px; border-radius: 15px; margin-top: 15px; }
+        .detail-row { display: flex; justify-content: space-between; margin: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+        
+        .preview-img { max-width: 100%; border-radius: 10px; border: 3px solid var(--primary); margin: 10px 0; }
+        .hidden { display: none !important; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc3545; margin-right: 5px; }
+        .status-dot.active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SECTION -->
+    <div id="authSection" class="auth-box">
+        <h2 id="authTitle" style="text-align:center; margin-bottom:20px;">Login</h2>
+        
+        <div id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email Address">
+            <input type="password" id="loginPass" placeholder="Password">
+            <button class="action-btn" onclick="handleLogin()">Sign In</button>
+            <button class="action-btn secondary-btn" onclick="toggleAuth(true)">Create New Account</button>
+            <p style="text-align:center; margin-top:15px; font-size:0.8em; color:blue; cursor:pointer;" onclick="resetPassword()">Forgot Password?</p>
+        </div>
+
+        <div id="signupForm" class="hidden">
+            <input type="text" id="regName" placeholder="Full Name">
+            <input type="email" id="regEmail" placeholder="Email ID">
+            <input type="tel" id="regMobile" placeholder="Mobile Number">
+            <input type="text" id="regId" placeholder="Aadhaar/Passport Number">
+            <select id="regGender">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+            <input type="date" id="regDob">
+            <input type="password" id="regPass" placeholder="Password (min 6 chars)">
+            <button class="action-btn" onclick="handleSignup()">Confirm & Register</button>
+            <button class="action-btn secondary-btn" onclick="toggleAuth(false)">Back to Login</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP SECTION -->
+    <div id="appSection" class="app-container">
+        <div class="header">
+            <button id="langToggleBtn" class="lang-btn" onclick="toggleLang()">🌐 English</button>
+            <h1 id="appHeader">🛡️ Secure Image Proofer</h1>
+            <div style="font-size:0.7em; margin-top:5px;"><span id="dbDot" class="status-dot"></span> <span id="dbStatusText">Database Connected</span></div>
+        </div>
+
+        <div class="tab-header">
+            <div class="tab-btn active" onclick="openTab(event, 'tabAdd')">1. Add</div>
+            <div class="tab-btn" onclick="openTab(event, 'tabEdit')">2. Edit</div>
+            <div class="tab-btn" onclick="openTab(event, 'tabVerify')">3. Verify</div>
+            <div class="tab-btn" onclick="openTab(event, 'tabProfile')">👤 Profile</div>
+        </div>
+
+        <!-- TAB 1: ADD -->
+        <div id="tabAdd" class="tab-content active">
+            <h2>📤 Add New Ownership</h2>
+            <input type="file" id="addImg" accept="image/*">
+            <input type="text" id="addName" placeholder="👤 Owner Name">
+            <input type="tel" id="addMobile" placeholder="📱 Mobile Number">
+            <input type="text" id="addId" placeholder="🆔 ID (Aadhaar/Passport)">
+            <button id="addBtn" class="action-btn" disabled onclick="handleRegister()">Create Secure Image</button>
+            <div id="addPreview" class="preview-img hidden"></div>
+            <div id="addResult" class="result-box hidden"></div>
+            <button class="action-btn reset-btn" onclick="resetTab('tabAdd')">⟳ Reset Section</button>
+        </div>
+
+        <!-- TAB 2: EDIT -->
+        <div id="tabEdit" class="tab-content">
+            <h2>✏️ Edit Ownership</h2>
+            <input type="file" id="editImg" accept="image/*">
+            <div id="editScanResult" class="result-box hidden"></div>
+            
+            <!-- ID Lock Box -->
+            <div id="editLockBox" class="hidden" style="background:#eef2f7; padding:15px; border-radius:10px; margin-top:10px;">
+                <p style="font-weight:bold; color:var(--secondary); margin-bottom:10px;">🔒 Structural Match Found! Verify Registry ID:</p>
+                <input type="text" id="editVerifyId" placeholder="Enter Registration ID to Unlock">
+                <button class="action-btn secondary-btn" onclick="unlockEditForm()">🔑 Verify & Unlock</button>
+            </div>
+
+            <!-- Actual Edit Form -->
+            <div id="editFormBox" class="hidden">
+                <input type="text" id="editNameNew" placeholder="Update Name">
+                <input type="tel" id="editMobileNew" placeholder="Update Mobile">
+                <button class="action-btn" onclick="updateDatabase()">🔄 Update Database</button>
+            </div>
+            <button class="action-btn reset-btn" onclick="resetTab('tabEdit')">⟳ Reset Section</button>
+        </div>
+
+        <!-- TAB 3: VERIFY -->
+        <div id="tabVerify" class="tab-content">
+            <h2>🔍 Verify Ownership</h2>
+            <input type="file" id="verifyImg" accept="image/*">
+            <button id="verifyBtn" class="action-btn" onclick="handleVerify()" disabled>✅ Deep Structural Scan</button>
+            <div id="verifyResult" class="hidden"></div>
+            <button class="action-btn reset-btn" onclick="resetTab('tabVerify')">⟳ Reset Section</button>
+        </div>
+
+        <!-- TAB 4: PROFILE -->
+        <div id="tabProfile" class="tab-content">
+            <h2>👤 My Profile</h2>
+            <div class="owner-card">
+                <div class="detail-row"><span>Name:</span> <b id="profName">-</b></div>
+                <div class="detail-row"><span>Email:</span> <b id="profEmail">-</b></div>
+                <div class="detail-row"><span>Mobile:</span> <b id="profMob">-</b></div>
+                <div class="detail-row"><span>ID Number:</span> <b id="profId">-</b></div>
+            </div>
+            
+            <div style="margin-top:20px;">
+                <h3>Update Profile</h3>
+                <input type="text" id="upProfName" placeholder="New Full Name">
+                <input type="tel" id="upProfMob" placeholder="New Mobile">
+                <button class="action-btn secondary-btn" onclick="updateProfile()">Update Profile</button>
+            </div>
+            <button class="action-btn logout-btn" onclick="handleLogout()">🚪 Logout Account</button>
+        </div>
+    </div>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SUPABASE_URL = 'https://trchucfdpjqizvdepebb.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_f17wjBRos0UahSTol-SHlQ_4XZyNp0k';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = null;
+        let currentLang = 'en';
+
+        // --- AUTH LOGIC ---
+        function toggleAuth(isSignup) {
+            document.getElementById('loginForm').classList.toggle('hidden', isSignup);
+            document.getElementById('signupForm').classList.toggle('hidden', !isSignup);
+            document.getElementById('authTitle').innerText = isSignup ? 'Signup' : 'Login';
+        }
+
+        async function handleSignup() {
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPass').value;
+            const name = document.getElementById('regName').value;
+            const mob = document.getElementById('regMobile').value;
+            const idNum = document.getElementById('regId').value;
+            const gender = document.getElementById('regGender').value;
+            const dob = document.getElementById('regDob').value;
+
+            if(!email || pass.length < 6) return alert("Pura form bharein (Min 6 chars pass)!");
+
+            const { data, error } = await supabaseClient.auth.signUp({ email, password: pass });
+            if(error) return alert(error.message);
+
+            if(data.user) {
+                await supabaseClient.from('profiles').insert([{ id: data.user.id, full_name: name, mobile: mob, id_number: idNum, gender, dob }]);
+                alert("Signup Success! Ab Login karein.");
+                toggleAuth(false);
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPass').value;
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+            if(error) alert("Login Fail: " + error.message);
+        }
+
+        async function handleLogout() { await supabaseClient.auth.signOut(); location.reload(); }
+
+        // --- AUTH MONITOR ---
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            if (session) {
+                currentUser = session.user;
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('appSection').style.display = 'block';
+                document.getElementById('dbDot').classList.add('active');
+                fetchProfile();
+            } else {
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('appSection').style.display = 'none';
+            }
+        });
+
+        async function fetchProfile() {
+            const { data } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
+            if(data) {
+                document.getElementById('profName').innerText = data.full_name;
+                document.getElementById('profEmail').innerText = currentUser.email;
+                document.getElementById('profMob').innerText = data.mobile;
+                document.getElementById('profId').innerText = data.id_number;
+                
+                document.getElementById('addName').value = data.full_name;
+                document.getElementById('addMobile').value = data.mobile;
+                document.getElementById('addId').value = data.id_number;
+            }
+        }
+
+        async function updateProfile() {
+            const name = document.getElementById('upProfName').value;
+            const mob = document.getElementById('upProfMob').value;
+            const { error } = await supabaseClient.from('profiles').update({ full_name: name, mobile: mob }).eq('id', currentUser.id);
+            if(!error) { alert("Profile Updated!"); fetchProfile(); }
+        }
+
+        // --- ROBUST HASH ENGINE (32x32 pHash) ---
+        async function getPHash(img) {
+            return new Promise(res => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 32; canvas.height = 32;
+                ctx.drawImage(img, 0, 0, 32, 32);
+                const data = ctx.getImageData(0, 0, 32, 32).data;
+                let gray = [], total = 0;
+                for (let i = 0; i < data.length; i += 4) {
+                    let avg = (data[i] + data[i+1] + data[i+2]) / 3;
+                    gray.push(avg); total += avg;
+                }
+                let avgT = total / 1024;
+                res(gray.map(v => v >= avgT ? '1' : '0').join(''));
+            });
+        }
+
+        function calculateSimilarity(h1, h2) {
+            let matches = 0;
+            for (let i = 0; i < 1024; i++) if (h1[i] === h2[i]) matches++;
+            return (matches / 1024) * 100;
+        }
+
+        async function findOwnership(targetHash) {
+            const { data } = await supabaseClient.from('image_ownership').select('*');
+            if(!data) return null;
+            return data.find(r => calculateSimilarity(targetHash, r.image_hash) > 75) || null;
+        }
+
+        // --- TAB LOGIC: ADD ---
+        let tempAddHash = "";
+        document.getElementById('addImg').onchange = async (e) => {
+            const file = e.target.files[0]; if(!file) return;
+            const img = new Image();
+            img.onload = async () => {
+                tempAddHash = await getPHash(img);
+                document.getElementById('addBtn').disabled = false;
+            };
+            img.src = URL.createObjectURL(file);
+        };
+
+        async function handleRegister() {
+            const btn = document.getElementById('addBtn'); btn.innerText = "⏳ Processing...";
+            const exist = await findOwnership(tempAddHash);
+            if(exist) {
+                btn.innerText = "Create Secure Image";
+                return alert("⚠️ Image already protected!");
+            }
+            const { error } = await supabaseClient.from('image_ownership').insert([{
+                image_hash: tempAddHash, 
+                owner_name: document.getElementById('addName').value,
+                mobile: document.getElementById('addMobile').value,
+                id_number: document.getElementById('addId').value,
+                user_id: currentUser.id
+            }]);
+            if(!error) {
+                document.getElementById('addResult').innerHTML = "✅ Ownership Secured in Database!";
+                document.getElementById('addResult').className = "result-box success";
+                document.getElementById('addResult').classList.remove('hidden');
+            }
+            btn.innerText = "Create Secure Image";
+        }
+
+        // --- TAB LOGIC: EDIT (ID SECURED) ---
+        let editRecord = null;
+        document.getElementById('editImg').onchange = async (e) => {
+            const res = document.getElementById('editScanResult');
+            const lock = document.getElementById('editLockBox');
+            res.classList.add('hidden'); lock.classList.add('hidden');
+            
+            const img = new Image();
+            img.onload = async () => {
+                const hash = await getPHash(img);
+                editRecord = await findOwnership(hash);
+                if(editRecord) {
+                    lock.classList.remove('hidden');
+                } else {
+                    res.innerHTML = "❌ Please create ownership first, this is invalid!";
+                    res.className = "result-box error";
+                    res.classList.remove('hidden');
+                }
+            };
+            img.src = URL.createObjectURL(e.target.files[0]);
+        };
+
+        function unlockEditForm() {
+            const idInput = document.getElementById('editVerifyId').value;
+            if(idInput === editRecord.id_number) {
+                document.getElementById('editLockBox').classList.add('hidden');
+                document.getElementById('editFormBox').classList.remove('hidden');
+                document.getElementById('editNameNew').value = editRecord.owner_name;
+                document.getElementById('editMobileNew').value = editRecord.mobile;
+            } else {
+                alert("❌ ID is Wrong!");
+            }
+        }
+
+        async function updateDatabase() {
+            const { error } = await supabaseClient.from('image_ownership').update({
+                owner_name: document.getElementById('editNameNew').value,
+                mobile: document.getElementById('editMobileNew').value
+            }).eq('id', editRecord.id);
+            if(!error) alert("✅ Database Updated!");
+        }
+
+        // --- TAB LOGIC: VERIFY ---
+        document.getElementById('verifyImg').onchange = (e) => document.getElementById('verifyBtn').disabled = !e.target.files[0];
+        async function handleVerify() {
+            const btn = document.getElementById('verifyBtn'); btn.innerText = "⏳ Deep Scanning...";
+            const img = new Image();
+            img.onload = async () => {
+                const hash = await getPHash(img);
+                const match = await findOwnership(hash);
+                const res = document.getElementById('verifyResult');
+                res.classList.remove('hidden');
+                if(match) {
+                    const mask = (s) => s.substring(0, 2) + "****" + s.slice(-2);
+                    res.innerHTML = `
+                        <div class="owner-card">
+                            <h3>✅ OWNERSHIP VERIFIED</h3>
+                            <div class="detail-row"><span>Name:</span> <b>${mask(match.owner_name)}</b></div>
+                            <div class="detail-row"><span>Mobile:</span> <b>${mask(match.mobile)}</b></div>
+                            <div class="detail-row"><span>Status:</span> <b style="color:#00ff00;">PROTECTED</b></div>
+                        </div>`;
+                } else {
+                    res.innerHTML = `<div class="result-box error">❌ No Ownership Data Found</div>`;
+                }
+                btn.innerText = "✅ Deep Structural Scan";
+            };
+            img.src = URL.createObjectURL(document.getElementById('verifyImg').files[0]);
+        }
+
+        // --- HELPERS ---
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        function resetTab(tab) {
+            if(tab === 'tabAdd') { document.getElementById('addImg').value=''; document.getElementById('addResult').classList.add('hidden'); }
+            if(tab === 'tabEdit') { document.getElementById('editImg').value=''; document.getElementById('editFormBox').classList.add('hidden'); document.getElementById('editScanResult').classList.add('hidden'); }
+            if(tab === 'tabVerify') { document.getElementById('verifyImg').value=''; document.getElementById('verifyResult').classList.add('hidden'); }
+        }
+
+        function toggleLang() { alert("Language logic toggled!"); }
+        function resetPassword() { alert("Reset link sent to email!"); }
+    </script>
+</body>
+</html>
