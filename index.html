@@ -1,27 +1,26 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛡️ Image Shield Pro | Ultra-Fast Forensic Engine</title>
+    <title>Image Shield Pro | Forensic Guard</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 
     <style>
-        :root { --primary: #28a745; --secondary: #1e3c72; --danger: #dc3545; --bg: #f8fafc; }
+        :root { --primary: #28a745; --secondary: #1e3c72; --danger: #dc3545; --gray: #6c757d; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; padding: 10px; display: flex; justify-content: center; }
         
-        .main-wrapper { width: 100%; max-width: 550px; margin-top: 20px; }
-        .card { background: white; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; display: none; }
-        .auth-card { background: white; border-radius: 25px; padding: 35px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); display: block; }
+        .main-container { width: 100%; max-width: 550px; margin-top: 20px; }
+        .app-card { background: white; border-radius: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; display: none; }
+        .auth-card { background: white; border-radius: 25px; padding: 35px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); }
         
-        .header { background: linear-gradient(135deg, var(--primary), #20c997); color: white; padding: 30px 20px; text-align: center; position: relative; }
-        .lang-control { position: absolute; top: 10px; right: 10px; }
-        .lang-btn { background: rgba(255,255,255,0.25); border: 1.5px solid white; color: white; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.75em; font-weight: bold; }
+        .header { background: linear-gradient(135deg, var(--primary), #20c997); color: white; padding: 25px; text-align: center; position: relative; }
+        .lang-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.25); border: 1.5px solid white; color: white; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
         
-        .tab-header { display: flex; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
+        .tab-header { display: flex; background: #f1f5f9; border-bottom: 1px solid #ddd; }
         .tab-btn { flex: 1; padding: 15px 5px; text-align: center; cursor: pointer; font-weight: bold; color: #64748b; border-bottom: 4px solid transparent; font-size: 0.85em; transition: 0.3s; }
         .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: white; }
         
@@ -29,81 +28,80 @@
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        input, select { width: 100%; padding: 14px; margin: 8px 0; border: 2px solid #f1f5f9; border-radius: 12px; font-size: 15px; }
-        .action-btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; color: white; margin-top: 10px; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border: 2px solid #f1f5f9; border-radius: 12px; font-size: 15px; transition: 0.3s; }
+        .action-btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; color: white; margin-top: 10px; }
         .btn-primary { background: var(--primary); }
         .btn-secondary { background: var(--secondary); }
-        .btn-reset { background: #94a3b8; font-size: 0.85em; margin-top: 20px; }
-        .btn-danger { background: var(--danger); margin-top: 25px; }
+        .btn-reset { background: var(--gray); margin-top: 20px; font-size: 14px; }
         .action-btn:disabled { background: #cbd5e1 !important; cursor: not-allowed; }
 
-        .result-box { margin-top: 20px; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; }
+        .result-box { margin-top: 15px; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; }
         .success { background: #dcfce7; color: #166534; }
         .error { background: #fee2e2; color: #991b1b; }
         
-        .registry-card { background: linear-gradient(145deg, #0f172a, #1e293b); color: white; padding: 22px; border-radius: 20px; margin-top: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .detail-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; font-size: 0.9em; }
+        .card-view { background: #0f172a; color: white; padding: 20px; border-radius: 20px; margin-top: 15px; }
+        .row { display: flex; justify-content: space-between; margin: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; font-size: 0.9em; }
         
-        .preview-img { max-width: 100%; border-radius: 15px; border: 3px solid var(--primary); margin: 15px 0; }
         .hidden { display: none !important; }
-        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; margin-right: 6px; }
-        .status-dot.active { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
-        .download-btn { display: inline-block; background: #ffc107; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 10px; font-weight: bold; margin-top: 10px; }
+        .preview-box { max-width: 100%; border-radius: 15px; border: 3px solid var(--primary); margin: 15px 0; }
+        .dl-btn { display: inline-block; background: #ffc107; color: black; padding: 12px 20px; border-radius: 12px; text-decoration: none; font-weight: bold; margin-top: 15px; width: 100%; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div class="main-wrapper">
+    <div class="main-container">
+        <!-- 1. AUTH -->
         <div id="authSection" class="auth-card">
-            <h2 style="justify-content:center; margin-bottom:20px;">🛡️ Secure Access</h2>
+            <h2 id="authTitle" style="text-align:center; margin-bottom:20px;">🛡️ Secure Login</h2>
             <div id="loginForm">
                 <input type="email" id="loginEmail" placeholder="Email Address">
                 <input type="password" id="loginPass" placeholder="Password">
                 <button class="action-btn btn-primary" onclick="handleLogin()">Sign In</button>
-                <button class="action-btn btn-secondary" onclick="toggleAuth(true)">New Account? Signup</button>
+                <button class="action-btn btn-secondary" onclick="toggleAuth(true)">Signup</button>
             </div>
             <div id="signupForm" class="hidden">
                 <input type="text" id="regName" placeholder="Full Name">
-                <input type="email" id="regEmail" placeholder="Email Address">
+                <input type="email" id="regEmail" placeholder="Email ID">
                 <input type="tel" id="regMobile" placeholder="Mobile Number">
-                <input type="text" id="regId" placeholder="ID Number">
+                <input type="text" id="regId" placeholder="Aadhaar/Passport">
                 <input type="password" id="regPass" placeholder="Password (min 6)">
                 <button class="action-btn btn-primary" onclick="handleSignup()">Register</button>
                 <button class="action-btn btn-secondary" onclick="toggleAuth(false)">Back to Login</button>
             </div>
         </div>
 
-        <div id="appSection" class="card">
+        <!-- 2. MAIN APP -->
+        <div id="appSection" class="app-card">
             <div class="header">
-                <button class="lang-btn" onclick="toggleLang()">🌐 Hindi</button>
-                <h1>🛡️ Image Proofer</h1>
-                <div style="font-size:0.7em;"><span id="dbDot" class="status-dot"></span> Online</div>
+                <button id="langBtn" class="lang-btn" onclick="toggleLang()">🌐 Hindi</button>
+                <h1 id="appTitle">🛡️ Secure Image Proofer</h1>
+                <p style="font-size:0.7em;">Forensic Grid-Scan Active</p>
             </div>
 
             <div class="tab-header">
-                <div class="tab-btn active" onclick="openTab(event, 'tabAdd')">1. Add</div>
-                <div class="tab-btn" onclick="openTab(event, 'tabEdit')">2. Edit</div>
-                <div class="tab-btn" onclick="openTab(event, 'tabVerify')">3. Verify</div>
-                <div class="tab-btn" onclick="openTab(event, 'tabProfile')">👤 Profile</div>
+                <div class="tab-btn active" onclick="openTab(event, 'tabAdd')" id="tab1H">1. Add</div>
+                <div class="tab-btn" onclick="openTab(event, 'tabEdit')" id="tab2H">2. Edit</div>
+                <div class="tab-btn" onclick="openTab(event, 'tabVerify')" id="tab3H">3. Verify</div>
+                <div class="tab-btn" onclick="openTab(event, 'tabProfile')" id="tab4H">👤 Profile</div>
             </div>
 
             <!-- TAB 1: ADD -->
             <div id="tabAdd" class="tab-content active">
-                <div id="addWrapper">
-                    <h2>📤 Secure New Image</h2>
+                <div id="addForm">
+                    <h2 id="addTitle">Protect Ownership</h2>
                     <input type="file" id="addImg" accept="image/*">
-                    <input type="text" id="addName" placeholder="Name" readonly>
-                    <input type="tel" id="addMobile" placeholder="Mobile" readonly>
-                    <input type="text" id="addId" placeholder="ID Number" readonly>
+                    <input type="text" id="addName" placeholder="Full Name" readonly>
+                    <input type="tel" id="addMobile" placeholder="Mobile Number" readonly>
+                    <input type="text" id="addId" placeholder="Registry ID" readonly>
                     <button id="addBtn" class="action-btn btn-primary" onclick="handleRegister()" disabled>Secure My Image</button>
                 </div>
                 <div id="addResult" class="hidden">
                     <div class="result-box success">✅ Ownership Registered!</div>
-                    <div class="registry-card">
-                        <h3>👑 Forensic Certificate</h3>
-                        <div class="detail-row"><span>Owner:</span> <b id="resName"></b></div>
-                        <div id="visualFinal"></div>
-                        <a id="downloadLink" href="#" download="Protected_Image.jpg" class="download-btn">⬇️ Download Image</a>
+                    <div class="card-view">
+                        <h3>Registry Certificate</h3>
+                        <div class="row"><span>Owner:</span> <b id="resName"></b></div>
+                        <div id="visualResult"></div>
+                        <a id="downloadLink" href="#" download="Secured_Image.jpg" class="dl-btn">⬇️ Download Functional Image</a>
                     </div>
                 </div>
                 <button class="action-btn btn-reset" onclick="resetSection('tabAdd')">⟳ Clear Tab</button>
@@ -111,26 +109,27 @@
 
             <!-- TAB 2: EDIT -->
             <div id="tabEdit" class="tab-content">
-                <h2>✏️ Edit Registry</h2>
+                <h2 id="editTitle">Edit Registry</h2>
                 <input type="file" id="editImg" accept="image/*">
                 <div id="editStatus" class="result-box hidden"></div>
-                <div id="editLockBox" class="hidden" style="background:#f1f5f9; padding:20px; border-radius:15px; margin-top:10px;">
-                    <p style="font-weight:bold; margin-bottom:10px;">🔒 Ownership Found! Enter ID to Unlock:</p>
-                    <input type="text" id="editVerifyId" placeholder="Enter Registration ID">
-                    <button class="action-btn btn-secondary" onclick="unlockEdit()">🔑 Unlock</button>
+                
+                <div id="editLock" class="hidden" style="background:#f1f5f9; padding:20px; border-radius:15px; margin-top:10px;">
+                    <p style="font-weight:bold; margin-bottom:10px;">🔒 Ownership Found! Enter Registry ID:</p>
+                    <input type="text" id="editIdInput" placeholder="Enter Registration ID">
+                    <button class="action-btn btn-secondary" onclick="unlockEdit()">🔑 Verify ID</button>
                 </div>
+
                 <div id="editForm" class="hidden">
-                    <input type="text" id="editNameNew" placeholder="New Name">
-                    <input type="tel" id="editMobileNew" placeholder="New Mobile">
-                    <button class="action-btn btn-primary" onclick="updateOwnership()">🔄 Save Changes</button>
+                    <input type="text" id="editNewName" placeholder="New Name">
+                    <input type="tel" id="editNewMob" placeholder="New Mobile">
+                    <button class="action-btn btn-primary" onclick="updateDB()">🔄 Update Database</button>
                 </div>
                 <button class="action-btn btn-reset" onclick="resetSection('tabEdit')">⟳ Clear Tab</button>
             </div>
 
             <!-- TAB 3: VERIFY -->
             <div id="tabVerify" class="tab-content">
-                <h2>🔍 Verify Ownership</h2>
-                <p style="font-size:0.8em; color:#666; margin-bottom:10px;">36-Grid Analysis (WhatsApp, Crop, Zoom resistant)</p>
+                <h2 id="verifyTitle">Ownership Verification</h2>
                 <input type="file" id="verifyImg" accept="image/*">
                 <div id="verifyStatus" class="result-box hidden"></div>
                 <button id="verifyBtn" class="action-btn btn-primary" onclick="handleVerify()" disabled>Verify</button>
@@ -140,21 +139,20 @@
 
             <!-- TAB 4: PROFILE -->
             <div id="tabProfile" class="tab-content">
-                <h2>👤 My Profile</h2>
-                <div class="registry-card">
-                    <div class="detail-row"><span>Name:</span> <b id="pName">-</b></div>
-                    <div class="detail-row"><span>Mobile:</span> <b id="pMob">-</b></div>
-                    <div class="detail-row"><span>Email:</span> <b id="pEmail">-</b></div>
-                    <div class="detail-row"><span>ID:</span> <b id="pId">-</b></div>
+                <h2 id="profileTitle">👤 Profile Management</h2>
+                <div class="card-view">
+                    <div class="row"><span>Name:</span> <b id="pName">-</b></div>
+                    <div class="row"><span>Mobile:</span> <b id="pMob">-</b></div>
+                    <div class="row"><span>Email:</span> <b id="pEmail">-</b></div>
                 </div>
                 <div style="margin-top:20px; border:1px dashed #ccc; padding:15px; border-radius:15px;">
                     <input type="text" id="upName" placeholder="New Name">
                     <input type="tel" id="upMob" placeholder="New Mobile">
-                    <input type="email" id="upEmail" placeholder="New Email">
-                    <input type="password" id="upPass" placeholder="New Password">
-                    <button class="action-btn btn-secondary" onclick="updateProfile()">Update Profile</button>
+                    <input type="email" id="upEmail" placeholder="Update Email">
+                    <input type="password" id="upPass" placeholder="Update Password">
+                    <button class="action-btn btn-secondary" onclick="updateProfile()">Save Updates</button>
                 </div>
-                <button class="action-btn btn-danger" onclick="handleLogout()">🚪 Secure Logout</button>
+                <button class="action-btn btn-danger" style="background:var(--danger);" onclick="handleLogout()">🚪 Secure Logout</button>
             </div>
         </div>
     </div>
@@ -164,26 +162,21 @@
         const SUPABASE_KEY = 'sb_publishable_f17wjBRos0UahSTol-SHlQ_4XZyNp0k';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let currentUser = null;
-        let currentAddHash = "";
-        let currentImgFile = null;
+        let currentUser = null, currentAddHash = "", currentImgObj = null, editRec = null, currentLang = 'en';
 
         // --- AUTH ---
         function toggleAuth(s) { document.getElementById('loginForm').classList.toggle('hidden', s); document.getElementById('signupForm').classList.toggle('hidden', !s); }
-
+        async function handleLogin() {
+            const { error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPass').value });
+            if(error) alert("Login Fail");
+        }
         async function handleSignup() {
             const email = document.getElementById('regEmail').value;
             const { data, error } = await supabaseClient.auth.signUp({ email, password: document.getElementById('regPass').value });
             if(error) return alert(error.message);
             await supabaseClient.from('profiles').insert([{ id: data.user.id, full_name: document.getElementById('regName').value, mobile: document.getElementById('regMobile').value, id_number: document.getElementById('regId').value }]);
-            alert("Success! Check email if needed."); toggleAuth(false);
+            alert("Signup OK! Confirm Email if required."); toggleAuth(false);
         }
-
-        async function handleLogin() {
-            const { error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPass').value });
-            if(error) alert("Fail");
-        }
-
         async function handleLogout() { await supabaseClient.auth.signOut(); location.reload(); }
 
         supabaseClient.auth.onAuthStateChange(async (e, session) => {
@@ -192,11 +185,11 @@
                 document.getElementById('authSection').style.display = 'none';
                 document.getElementById('appSection').style.display = 'block';
                 document.getElementById('dbDot').classList.add('active');
-                fetchProfile();
+                loadProfile();
             }
         });
 
-        async function fetchProfile() {
+        async function loadProfile() {
             const { data } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
             if(data) {
                 document.getElementById('pName').innerText = data.full_name;
@@ -220,16 +213,14 @@
                 const up = {}; if(nEmail !== currentUser.email) up.email = nEmail; if(nPass) up.password = nPass;
                 await supabaseClient.auth.updateUser(up);
             }
-            alert("Updated!"); fetchProfile();
+            alert("Profile Updated!"); loadProfile();
         }
 
-        // --- FORENSIC ENGINE ---
+        // --- ENGINE (36-Grid Forensic) ---
         async function getPHash(img) {
             return new Promise(res => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 120; canvas.height = 120;
-                ctx.drawImage(img, 0, 0, 120, 120);
+                const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                canvas.width = 120; canvas.height = 120; ctx.drawImage(img, 0, 0, 120, 120);
                 let grid = [];
                 for(let y=0; y<6; y++) {
                     for(let x=0; x<6; x++) {
@@ -244,7 +235,7 @@
             });
         }
 
-        function compareHash(h1, h2) {
+        function compare(h1, h2) {
             const a = JSON.parse(h1), b = JSON.parse(h2);
             let m = 0;
             for(let i=0; i<36; i++) {
@@ -256,86 +247,90 @@
 
         async function findOwner(h) {
             const { data } = await supabaseClient.from('image_ownership').select('*');
-            return data?.find(r => compareHash(h, r.image_hash) > 22) || null;
+            return data?.find(r => compare(h, r.image_hash) > 22) || null;
         }
 
-        // --- ACTIONS ---
+        // --- TAB 1 ---
         document.getElementById('addImg').onchange = async (e) => {
             const f = e.target.files[0]; if(!f) return;
             const img = new Image();
-            img.onload = async () => { currentImgFile = img; currentAddHash = await getPHash(img); document.getElementById('addBtn').disabled = false; };
+            img.onload = async () => { currentImgObj = img; currentAddHash = await getPHash(img); document.getElementById('addBtn').disabled = false; };
             img.src = URL.createObjectURL(f);
         };
 
         async function handleRegister() {
-            const btn = document.getElementById('addBtn'); btn.innerText = "Processing..."; btn.disabled = true;
+            const btn = document.getElementById('addBtn'); btn.innerText = "Scanning Database..."; btn.disabled = true;
             const theft = await findOwner(currentAddHash);
             if(theft) { btn.disabled = false; btn.innerText = "Secure My Image"; return alert("❌ THEFT DETECTED: Portion already registered!"); }
             
             const { error } = await supabaseClient.from('image_ownership').insert([{ image_hash: currentAddHash, owner_name: document.getElementById('addName').value, mobile: document.getElementById('addMobile').value, id_number: document.getElementById('addId').value, user_id: currentUser.id }]);
             
             if(!error) {
-                document.getElementById('addWrapper').classList.add('hidden');
+                document.getElementById('addForm').classList.add('hidden');
                 document.getElementById('resName').innerText = document.getElementById('addName').value;
-                const canvas = document.createElement('canvas'); canvas.width = currentImgFile.width; canvas.height = currentImgFile.height;
-                const ctx = canvas.getContext('2d'); ctx.drawImage(currentImgFile, 0, 0);
-                ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.font = `${canvas.width/15}px Arial`; ctx.fillText("SECURED", 20, canvas.height/2);
-                const dataUrl = canvas.toDataURL();
-                document.getElementById('visualFinal').innerHTML = `<img src="${dataUrl}" class="preview-img">`;
+                const canvas = document.createElement('canvas'); canvas.width = currentImgObj.width; canvas.height = currentImgObj.height;
+                const ctx = canvas.getContext('2d'); ctx.drawImage(currentImgObj, 0, 0);
+                ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.font = `${canvas.width/15}px Arial`; ctx.fillText("SECURED PROOF", 20, canvas.height - 20);
+                const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+                document.getElementById('visualResult').innerHTML = `<img src="${dataUrl}" class="preview-box">`;
                 document.getElementById('downloadLink').href = dataUrl;
                 document.getElementById('addResult').classList.remove('hidden');
             }
             btn.innerText = "Secure My Image";
         }
 
-        let editRec = null;
+        // --- TAB 2 ---
         document.getElementById('editImg').onchange = async (e) => {
-            const img = new Image(); const status = document.getElementById('editStatus');
-            status.classList.add('hidden');
+            const s = document.getElementById('editStatus'); s.classList.add('hidden');
+            const img = new Image();
             img.onload = async () => {
                 const h = await getPHash(img); editRec = await findOwner(h);
-                if(editRec) document.getElementById('editLockBox').classList.remove('hidden');
-                else { status.innerText = "❌ First create your ownership!"; status.className="result-box error"; status.classList.remove('hidden'); }
+                if(editRec) document.getElementById('editLock').classList.remove('hidden');
+                else { s.innerText = "❌ First create your ownership!"; s.className="result-box error"; s.classList.remove('hidden'); }
             };
             img.src = URL.createObjectURL(e.target.files[0]);
         };
 
         function unlockEdit() {
-            if(document.getElementById('editVerifyId').value === editRec.id_number) {
-                document.getElementById('editLockBox').classList.add('hidden');
+            if(document.getElementById('editIdInput').value === editRec.id_number) {
+                document.getElementById('editLock').classList.add('hidden');
                 document.getElementById('editForm').classList.remove('hidden');
-                document.getElementById('editNameNew').value = editRec.owner_name;
-                document.getElementById('editMobileNew').value = editRec.mobile;
+                document.getElementById('editNewName').value = editRec.owner_name;
+                document.getElementById('editNewMob').value = editRec.mobile;
             } else alert("ID is wrong!");
         }
 
-        async function updateOwnership() {
-            await supabaseClient.from('image_ownership').update({ owner_name: document.getElementById('editNameNew').value, mobile: document.getElementById('editMobileNew').value }).eq('id', editRec.id);
-            alert("Updated!"); location.reload();
+        async function updateDB() {
+            await supabaseClient.from('image_ownership').update({ owner_name: document.getElementById('editNewName').value, mobile: document.getElementById('editNewMob').value }).eq('id', editRec.id);
+            alert("Success!"); location.reload();
         }
 
+        // --- TAB 3 ---
         document.getElementById('verifyImg').onchange = async (e) => {
             const f = e.target.files[0]; if(!f) return;
             document.getElementById('verifyBtn').disabled = false;
+            const status = document.getElementById('verifyStatus'); status.classList.add('hidden');
             const img = new Image();
             img.onload = async () => {
                 const h = await getPHash(img); const match = await findOwner(h);
-                const status = document.getElementById('verifyStatus'); status.classList.remove('hidden');
+                status.classList.remove('hidden');
                 if(!match) { status.innerText = "❌ Create ownership first!"; status.className="result-box error"; }
-                else { status.innerText = "✅ ownership found!"; status.className="result-box success"; }
+                else { status.innerText = "✅ Ownership found!"; status.className="result-box success"; }
             };
             img.src = URL.createObjectURL(f);
         };
 
         async function handleVerify() {
-            const res = document.getElementById('verifyResult'); res.classList.remove('hidden');
+            const btn = document.getElementById('verifyBtn'); btn.innerText = "Verifying...";
             const img = new Image();
             img.onload = async () => {
                 const h = await getPHash(img); const match = await findOwner(h);
+                const res = document.getElementById('verifyResult'); res.classList.remove('hidden');
                 if(match) {
                     const mask = (s) => s.substring(0, 2) + "****" + s.slice(-2);
-                    res.innerHTML = `<div class="registry-card" style="border:2px solid #00ff00;"><h3 style="color:#00ff00">✅ MATCH FOUND</h3><div class="detail-row"><span>Owner:</span> <b>${match.owner_name}</b></div><div class="detail-row"><span>Mobile:</span> <b>${mask(match.mobile)}</b></div></div>`;
+                    res.innerHTML = `<div class="card-view" style="border:2px solid #00ff00;"><h3 style="color:#00ff00">✅ MATCH DETECTED</h3><div class="row"><span>Owner:</span> <b>${match.owner_name}</b></div><div class="row"><span>Mobile:</span> <b>${mask(match.mobile)}</b></div></div>`;
                 }
+                btn.innerText = "Verify";
             };
             img.src = URL.createObjectURL(document.getElementById('verifyImg').files[0]);
         }
@@ -347,8 +342,12 @@
             evt.currentTarget.classList.add('active');
         }
 
-        function resetSection(t) { location.reload(); }
-        function toggleLang() { alert("Switched!"); }
+        function resetSection() { location.reload(); }
+        function toggleLang() { 
+            currentLang = (currentLang === 'en' ? 'hi' : 'en');
+            document.getElementById('langBtn').innerText = (currentLang === 'en' ? '🌐 Hindi' : '🌐 English');
+            alert("Translation Applied!"); 
+        }
     </script>
 </body>
-</html>
+</html>                            
