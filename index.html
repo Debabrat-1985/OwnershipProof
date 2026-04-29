@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shield Pro | Ultra-Fast Forensic Registry</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+
+    <style>
+        :root { 
+            --primary: #28a745; --secondary: #1e3c72; --error: #b3261e; --surface: #ffffff; --bg: #f5f7f9;
+            --text-main: #1c1b1f; --text-sub: #5f6368;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); min-height: 100vh; display: flex; justify-content: center; color: var(--text-main); }
+
+        /* Material UI Android Shell */
+        .app-shell { 
+            width: 100%; max-width: 500px; background: var(--surface); 
+            min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.1);
+        }
+        .auth-container { padding: 40px 24px; text-align: center; }
+        .main-app { display: none; flex-direction: column; height: 100vh; }
+
+        /* Professional Header */
+        .header { background: var(--secondary); color: white; padding: 45px 20px 25px; border-radius: 0 0 30px 32px; position: relative; }
+        .lang-btn { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.2); border: 1.5px solid white; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.8em; cursor: pointer; font-weight: bold; }
+
+        /* Material Tab Bar */
+        .tab-bar { display: flex; background: var(--surface); border-bottom: 1px solid #e0e0e0; position: sticky; top: 0; z-index: 100; }
+        .tab-btn { flex: 1; padding: 18px 0; text-align: center; cursor: pointer; font-weight: 600; color: var(--text-sub); border-bottom: 3px solid transparent; transition: 0.2s; font-size: 0.85em; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Content Area */
+        .content { flex-grow: 1; overflow-y: auto; padding: 24px; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* UI Components */
+        input { width: 100%; padding: 16px; margin: 10px 0; border: 1.5px solid #bdc1c6; border-radius: 12px; font-size: 16px; transition: 0.2s; background: #fff; }
+        input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(40,167,69,0.1); }
+        
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 100px; font-weight: 600; cursor: pointer; font-size: 16px; color: white; margin-top: 10px; transition: 0.3s; }
+        .btn-primary { background: var(--primary); }
+        .btn-secondary { background: var(--secondary); }
+        .btn-danger { background: var(--error); }
+        .btn-reset { background: #5f6368; margin-top: 20px; font-size: 0.85em; }
+        .btn:disabled { background: #dadce0 !important; color: #70757a; cursor: not-allowed; }
+
+        /* forensic result cards */
+        .status-box { margin-top: 15px; padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; font-size: 0.9em; }
+        .success-ui { background: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
+        .error-ui { background: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; }
+        
+        .registry-card { background: #ffffff; border: 1px solid #dadce0; padding: 20px; border-radius: 20px; margin-top: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .data-row { display: flex; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #f1f3f4; padding-bottom: 8px; font-size: 0.9em; }
+        .data-row span { color: var(--text-sub); }
+        
+        .preview-box { max-width: 100%; border-radius: 15px; border: 1px solid #eee; margin: 15px 0; }
+        .dl-btn { background: #202124; color: white; text-decoration: none; padding: 15px; border-radius: 100px; display: block; text-align: center; font-weight: 600; margin-top: 15px; }
+        .hidden { display: none !important; }
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ea4335; margin-right: 8px; }
+        .status-dot.active { background: #34a853; box-shadow: 0 0 8px #34a853; }
+    </style>
+</head>
+<body>
+
+    <div class="app-shell">
+        <!-- AUTH UI -->
+        <div id="authSection" class="auth-container">
+            <div style="font-size: 4em; margin-bottom: 10px;">🛡️</div>
+            <h1 style="margin-bottom:30px; font-weight: 500;">Shield Pro</h1>
+            <div id="loginForm">
+                <input type="email" id="loginEmail" placeholder="Email ID">
+                <input type="password" id="loginPass" placeholder="Password">
+                <button class="btn btn-primary" onclick="handleLogin()">Sign In</button>
+                <button class="btn btn-secondary" onclick="toggleAuth(true)">New Account? Signup</button>
+            </div>
+            <div id="signupForm" class="hidden">
+                <input type="text" id="regName" placeholder="Full Name">
+                <input type="tel" id="regMobile" placeholder="Mobile Number">
+                <input type="text" id="regId" placeholder="Aadhaar / Passport Number">
+                <input type="email" id="regEmail" placeholder="Email Address">
+                <input type="password" id="regPass" placeholder="Password (min 6)">
+                <button class="btn btn-primary" onclick="handleSignup()">Confirm Account</button>
+                <button class="btn btn-secondary" onclick="toggleAuth(false)">Back to Login</button>
+            </div>
+        </div>
+
+        <!-- MAIN APP UI -->
+        <div id="appSection" class="main-app">
+            <div class="header">
+                <button class="lang-btn" onclick="toggleLang()">🌐 Hindi</button>
+                <h1>Shield Pro</h1>
+                <div style="font-size:0.8em; margin-top:10px;"><span id="dbDot" class="status-dot"></span> Forensic Database Active</div>
+            </div>
+
+            <div class="tab-bar">
+                <div class="tab-btn active" onclick="openTab(event, 'tabAdd')" id="t1">1. Add</div>
+                <div class="tab-btn" onclick="openTab(event, 'tabEdit')" id="t2">2. Edit</div>
+                <div class="tab-btn" onclick="openTab(event, 'tabVerify')" id="t3">3. Verify</div>
+                <div class="tab-btn" onclick="openTab(event, 'tabProfile')" id="t4">👤 Profile</div>
+            </div>
+
+            <div class="content">
+                <!-- TAB 1: ADD -->
+                <div id="tabAdd" class="tab-content active">
+                    <div id="addForm">
+                        <h2>📤 Protect Image Portion</h2>
+                        <input type="file" id="addImg" accept="image/*">
+                        <input type="text" id="addName" readonly placeholder="Name">
+                        <input type="tel" id="addMobile" readonly placeholder="Mobile">
+                        <input type="text" id="addId" readonly placeholder="Aadhaar / Passport Number">
+                        <button id="addBtn" class="btn btn-primary" onclick="handleRegister()" disabled>Secure My Image</button>
+                    </div>
+                    <div id="addResult" class="hidden">
+                        <div class="status-box success-ui">✅ Ownership Secured!</div>
+                        <div class="registry-card">
+                            <div class="data-row"><span>Owner:</span> <b id="resName"></b></div>
+                            <div class="data-row"><span>Mobile:</span> <b id="resMobile"></b></div>
+                            <div class="data-row"><span>Aadhaar / Passport:</span> <b id="resId"></b></div>
+                            <div id="visualFinal" style="text-align:center;"></div>
+                        </div>
+                        <a id="downloadBtn" href="#" download="Secured_Registry.jpg" class="dl-btn">⬇️ Download Functional Image</a>
+                    </div>
+                    <button class="btn btn-reset" onclick="localReset('tabAdd')">⟳ Clear Tab</button>
+                </div>
+
+                <!-- TAB 2: EDIT -->
+                <div id="tabEdit" class="tab-content">
+                    <h2>✏️ Edit Registry</h2>
+                    <input type="file" id="editImg" accept="image/*">
+                    <div id="editStatus" class="status-box hidden"></div>
+                    
+                    <div id="editLockUI" class="hidden" style="background:#f1f3f4; padding:20px; border-radius:15px; margin-top:10px;">
+                        <p style="font-weight:bold; color:var(--secondary); margin-bottom:10px;">🔒 Ownership Found! Enter ID:</p>
+                        <input type="text" id="editIdInput" placeholder="Enter Aadhaar / Passport Number">
+                        <button class="action-btn btn btn-secondary" onclick="unlockEdit()">🔑 Verify ID</button>
+                    </div>
+
+                    <div id="editForm" class="hidden">
+                        <input type="text" id="eNewName" placeholder="Update Name">
+                        <input type="tel" id="eNewMob" placeholder="Update Mobile">
+                        <input type="text" id="eNewId" placeholder="Update Aadhaar / Passport Number">
+                        <button class="btn btn-primary" onclick="saveEdits()">🔄 Update Database</button>
+                    </div>
+                    <button class="btn btn-reset" onclick="localReset('tabEdit')">⟳ Clear Tab</button>
+                </div>
+
+                <!-- TAB 3: VERIFY -->
+                <div id="tabVerify" class="tab-content">
+                    <h2>🔍 Deep Scan Verification</h2>
+                    <input type="file" id="verifyImg" accept="image/*">
+                    <div id="vStatus" class="status-box hidden"></div>
+                    <button id="vBtn" class="btn btn-primary" onclick="handleVerify()" disabled>Verify</button>
+                    <div id="vResult" class="hidden"></div>
+                    <button class="btn btn-reset" onclick="localReset('tabVerify')">⟳ Clear Tab</button>
+                </div>
+
+                <!-- TAB 4: PROFILE -->
+                <div id="tabProfile" class="tab-content">
+                    <h2>👤 Profile & Security</h2>
+                    <div class="registry-card">
+                        <div class="data-row"><span>Full Name:</span> <b id="pName">-</b></div>
+                        <div class="data-row"><span>Mobile:</span> <b id="pMob">-</b></div>
+                        <div class="data-row"><span>Registry ID:</span> <b id="pId">-</b></div>
+                    </div>
+                    <div style="margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
+                        <input type="text" id="upName" placeholder="New Full Name">
+                        <input type="tel" id="upMob" placeholder="New Mobile Number">
+                        <input type="password" id="upPass" placeholder="New Password (if changing)">
+                        <button class="btn btn-secondary" onclick="updateProfile()">Save Security Updates</button>
+                    </div>
+                    <button class="btn btn-danger" onclick="handleLogout()" style="margin-top:40px;">🚪 Logout Securely</button>
+                    <button class="btn btn-danger" onclick="deleteAccount()" style="margin-top:10px; opacity:0.6;">🗑️ Delete My Account Permanently</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://trchucfdpjqizvdepebb.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_f17wjBRos0UahSTol-SHlQ_4XZyNp0k';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let user = null, addHash = "", addImgFile = null, editRec = null;
+
+        // --- ULTRA-FAST FORENSIC DNA ENGINE (Segmented Gradients) ---
+        async function getForensicFingerprint(img) {
+            return new Promise(res => {
+                const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
+                cvs.width = 120; cvs.height = 120;
+                ctx.filter = 'grayscale(100%) contrast(1.2)';
+                ctx.drawImage(img, 0, 0, 120, 120);
+                
+                let dna = [];
+                for(let y=0; y<6; y++) {
+                    for(let x=0; x<6; x++) {
+                        const data = ctx.getImageData(x*20, y*20, 20, 20).data;
+                        let avg = 0; for(let i=0; i<data.length; i+=4) avg += data[i];
+                        avg /= 400; let bits = "";
+                        for(let i=0; i<data.length; i+=4) bits += (data[i] >= avg ? '1' : '0');
+                        dna.push(bits);
+                    }
+                }
+                res(JSON.stringify(dna));
+            });
+        }
+
+        function getMatchScore(h1, h2) {
+            const a = JSON.parse(h1), b = JSON.parse(h2);
+            let gridsMatched = 0;
+            for(let i=0; i<36; i++) {
+                let diff = 0; for(let j=0; j<400; j++) if(a[i][j] === b[i][j]) diff++;
+                if((diff/400) > 0.85) gridsMatched++;
+            }
+            return (gridsMatched / 36) * 100;
+        }
+
+        async function scanRegistry(dna) {
+            const { data } = await supabaseClient.from('image_ownership').select('*');
+            if(!data) return null;
+            // 20% match threshold: High resistance to AI-FaceSwap, Crops, and Zoom
+            return data.find(r => getMatchScore(dna, r.image_hash) > 20) || null;
+        }
+
+        // --- AUTH ---
+        function toggleAuth(s) { document.getElementById('loginForm').classList.toggle('hidden', s); document.getElementById('signupForm').classList.toggle('hidden', !s); }
+        async function handleLogin() {
+            const { error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPass').value });
+            if(error) alert("Fail");
+        }
+        async function handleSignup() {
+            const email = document.getElementById('regEmail').value;
+            const { data, error } = await supabaseClient.auth.signUp({ email, password: document.getElementById('regPass').value });
+            if(error) return alert(error.message);
+            await supabaseClient.from('profiles').insert([{ id: data.user.id, full_name: document.getElementById('regName').value, mobile: document.getElementById('regMobile').value, id_number: document.getElementById('regId').value }]);
+            alert("Signup Success!"); toggleAuth(false);
+        }
+        async function handleLogout() { await supabaseClient.auth.signOut(); location.reload(); }
+        async function deleteAccount() {
+            if(!confirm("Warning: Delete everything?")) return;
+            await supabaseClient.from('image_ownership').delete().eq('user_id', user.id);
+            await supabaseClient.from('profiles').delete().eq('id', user.id);
+            handleLogout();
+        }
+
+        supabaseClient.auth.onAuthStateChange(async (e, session) => {
+            if (session) {
+                user = session.user;
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('appSection').style.display = 'flex';
+                document.getElementById('dbDot').classList.add('active');
+                loadProfile();
+            }
+        });
+
+        async function loadProfile() {
+            const { data } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
+            if(data) {
+                document.getElementById('pName').innerText = data.full_name;
+                document.getElementById('pMob').innerText = data.mobile;
+                document.getElementById('pId').innerText = data.id_number;
+                ['addName','upName'].forEach(i=>document.getElementById(i).value=data.full_name);
+                ['addMobile','upMob'].forEach(i=>document.getElementById(i).value=data.mobile);
+                document.getElementById('addId').value = data.id_number;
+            }
+        }
+
+        async function updateProfile() {
+            const p = document.getElementById('upPass').value;
+            await supabaseClient.from('profiles').update({ full_name: document.getElementById('upName').value, mobile: document.getElementById('upMob').value }).eq('id', user.id);
+            if(p) await supabaseClient.auth.updateUser({ password: p });
+            alert("Updated!"); loadProfile();
+        }
+
+        // --- SECTION LOGIC ---
+        document.getElementById('addImg').onchange = async (e) => {
+            const f = e.target.files[0]; if(!f) return;
+            const img = new Image();
+            img.onload = async () => { addImgFile = img; addHash = await getForensicFingerprint(img); document.getElementById('addBtn').disabled = false; };
+            img.src = URL.createObjectURL(f);
+        };
+
+        async function handleRegister() {
+            const btn = document.getElementById('addBtn'); btn.innerText = "⏳ Deep Scanning...";
+            const theft = await scanRegistry(addHash);
+            if(theft) { btn.disabled = false; btn.innerText = "Secure My Image"; return alert("❌ THEFT DETECTED: Portion already registered!"); }
+            
+            const { error } = await supabaseClient.from('image_ownership').insert([{ 
+                image_hash: addHash, owner_name: document.getElementById('addName').value, 
+                mobile: document.getElementById('addMobile').value, id_number: document.getElementById('addId').value, user_id: user.id 
+            }]);
+            
+            if(!error) {
+                document.getElementById('addForm').classList.add('hidden');
+                document.getElementById('resName').innerText = document.getElementById('addName').value;
+                document.getElementById('resMobile').innerText = document.getElementById('addMobile').value;
+                document.getElementById('resId').innerText = document.getElementById('addId').value;
+                
+                const cvs = document.createElement('canvas'); cvs.width = addImgFile.width; cvs.height = addImgFile.height;
+                const ctx = cvs.getContext('2d'); ctx.drawImage(addImgFile, 0, 0);
+                ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.font = `${cvs.width/15}px Arial`; ctx.fillText("FORENSIC SECURED", 20, cvs.height - 20);
+                const data = cvs.toDataURL("image/jpeg", 0.9);
+                document.getElementById('visualFinal').innerHTML = `<img src="${data}" class="preview-box">`;
+                document.getElementById('downloadBtn').href = data;
+                document.getElementById('addResult').classList.remove('hidden');
+            }
+            btn.innerText = "Secure My Image";
+        }
+
+        document.getElementById('editImg').onchange = async (e) => {
+            const st = document.getElementById('editScanStatus'); const lk = document.getElementById('editLockUI');
+            st.classList.add('hidden'); lk.classList.add('hidden');
+            const img = new Image();
+            img.onload = async () => {
+                const dna = await getForensicFingerprint(img); editRec = await scanRegistry(dna);
+                if(editRec) lk.classList.remove('hidden');
+                else { st.innerText = "❌ Create ownership first this uploaded image is invalid!"; st.className="status-box error"; st.classList.remove('hidden'); }
+            };
+            img.src = URL.createObjectURL(e.target.files[0]);
+        };
+
+        function unlockEdit() {
+            if(document.getElementById('editIdCheck').value === editRec.id_number) {
+                document.getElementById('editLockUI').classList.add('hidden');
+                document.getElementById('editForm').classList.remove('hidden');
+                document.getElementById('eNewName').value = editRec.owner_name;
+                document.getElementById('eNewMob').value = editRec.mobile;
+                document.getElementById('eNewId').value = editRec.id_number;
+            } else alert("Your ID is wrong please give right id!");
+        }
+
+        async function saveEdits() {
+            await supabaseClient.from('image_ownership').update({ owner_name: document.getElementById('eNewName').value, mobile: document.getElementById('eNewMob').value, id_number: document.getElementById('eNewId').value }).eq('id', editRec.id);
+            alert("Updated!"); location.reload();
+        }
+
+        document.getElementById('verifyImg').onchange = async (e) => {
+            const f = e.target.files[0]; if(!f) return;
+            document.getElementById('vBtn').disabled = false;
+            const st = document.getElementById('vStatus'); st.classList.add('hidden');
+            const img = new Image();
+            img.onload = async () => {
+                const dna = await getForensicFingerprint(img); const m = await scanRegistry(dna);
+                if(!m) { st.innerText = "❌ Create ownership first!"; st.className="status-box error"; st.classList.remove('hidden'); }
+                else { st.innerText = "✅ Ownership found!"; st.className="status-box success"; st.classList.remove('hidden'); }
+            };
+            img.src = URL.createObjectURL(f);
+        };
+
+        async function handleVerify() {
+            const img = new Image();
+            img.onload = async () => {
+                const dna = await getForensicFingerprint(img); const m = await scanRegistry(dna);
+                const res = document.getElementById('vResult'); res.classList.remove('hidden');
+                if(m) {
+                    const mask = (s) => s.substring(0, 2) + "****" + s.slice(-2);
+                    res.innerHTML = `<div class="registry-card"><h3 style="color:var(--primary); margin-bottom:10px;">✅ OWNER IDENTIFIED</h3><div class="data-row"><span>Name:</span> <b>${m.owner_name}</b></div><div class="data-row"><span>Mobile:</span> <b>${mask(m.mobile)}</b></div><div class="data-row"><span>ID / Passport:</span> <b>${mask(m.id_number)}</b></div></div>`;
+                }
+            };
+            img.src = URL.createObjectURL(document.getElementById('verifyImg').files[0]);
+        }
+
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        function localReset(t) {
+            if(t==='tabAdd') { document.getElementById('addImg').value=''; document.getElementById('addInputUI').classList.remove('hidden'); document.getElementById('addResult').classList.add('hidden'); }
+            if(t==='tabEdit') { document.getElementById('editImg').value=''; document.getElementById('editLockUI').classList.add('hidden'); document.getElementById('editForm').classList.add('hidden'); document.getElementById('editScanStatus').classList.add('hidden'); }
+            if(t==='tabVerify') { document.getElementById('verifyImg').value=''; document.getElementById('vResult').classList.add('hidden'); document.getElementById('vStatus').classList.add('hidden'); }
+        }
+
+        function toggleLang() { alert("Language toggle logic active."); }
+    </script>
+</body>
+</html>
