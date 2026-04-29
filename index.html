@@ -350,7 +350,7 @@
         async function handleRegister() {
             const btn = document.getElementById('addBtn'); btn.innerText = "⏳ Protecting...";
             const exist = await findOwnership(tempAddHash);
-            if(exist) { btn.innerText = "Create Secure Image"; return alert("⚠️ Image already protected!"); }
+            if(exist) { btn.innerText = "Create Secure Image"; return alert("⚠️ Image already protected!</br>Try Another Image"); }
             const { error } = await supabaseClient.from('image_ownership').insert([{
                 image_hash: tempAddHash, owner_name: document.getElementById('addName').value, mobile: document.getElementById('addMobile').value, id_number: document.getElementById('addId').value, user_id: currentUser.id
             }]);
